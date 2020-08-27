@@ -29,7 +29,7 @@
 
 # COMMAND ----------
 
-# MAGIC %fs mkdirs /BankMarketing
+# MAGIC %fs mkdirs /tmp/BankMarketing
 
 # COMMAND ----------
 
@@ -38,7 +38,7 @@
 
 # COMMAND ----------
 
-# MAGIC %sh cp -rv /tmp/bank /dbfs/BankMarketing
+# MAGIC %sh cp -rv /tmp/bank /dbfs/tmp/BankMarketing
 
 # COMMAND ----------
 
@@ -54,7 +54,7 @@
 # COMMAND ----------
 
 bdf = spark.read.format("csv")\
-.option("path", "dbfs:/BankMarketing/bank/bank-full.csv")\
+.option("path", "dbfs:/tmp/BankMarketing/bank/bank-full.csv")\
 .option("inferSchema", "true")\
 .option("header", "true")\
 .option("delimiter", ";")\
@@ -64,8 +64,8 @@ bdf = spark.read.format("csv")\
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE DATABASE IF NOT EXISTS max_db
-# MAGIC LOCATION 'dbfs:/max/db'
+# MAGIC CREATE DATABASE IF NOT EXISTS rWorkshopDB
+# MAGIC LOCATION 'dbfs:/tmp/db/rWorkshopDB'
 
 # COMMAND ----------
 
@@ -74,8 +74,4 @@ bdf = spark.read.format("csv")\
 
 # COMMAND ----------
 
-bdf.write.mode('Overwrite').format("delta").saveAsTable("max_db.bank_marketing")
-
-# COMMAND ----------
-
-display(dbutils.fs.ls("dbfs:/max/db/bank_marketing/"))
+bdf.write.mode('Overwrite').format("delta").saveAsTable("rWorkshopDB.bank_marketing")

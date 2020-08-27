@@ -16,7 +16,7 @@ client = MlflowClient()
 
 # COMMAND ----------
 
-dbutils.widgets.text("modelRegistryName","bankXGBoost")
+dbutils.widgets.text("modelRegistryName","mthoneBankXGB")
 modelRegistryName = dbutils.widgets.get("modelRegistryName")
 
 # COMMAND ----------
@@ -27,6 +27,10 @@ def getProdModelURI(modelRegistryName):
   return source
 
 modelURI = getProdModelURI(modelRegistryName)
+
+# COMMAND ----------
+
+modelURI
 
 # COMMAND ----------
 
@@ -79,6 +83,10 @@ def predict(data):
 # COMMAND ----------
 
 df = spark.sql("select * from bank_db.bank_marketing_train_set")
+
+# COMMAND ----------
+
+display(df)
 
 # COMMAND ----------
 

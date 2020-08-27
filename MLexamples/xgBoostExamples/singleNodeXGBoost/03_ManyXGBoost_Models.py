@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC ### Cluster Configuration
 # MAGIC Make sure to start a cluster with the following configurations:
-# MAGIC * Databricks Runtime Version: 6.4 (NOT ML runtime)
+# MAGIC * Databricks Runtime Version: 7.0+
 # MAGIC * Instance type: Standard_F8s (5 nodes will be more than enough)
 # MAGIC   * We will be using pandas UDF to build many models, and then compute-optimised instance types are preferred.
 # MAGIC * Libraries:
@@ -13,12 +13,13 @@
 # MAGIC %md
 # MAGIC ### Introduction
 # MAGIC In this set of three notebooks we will demonstrate the following:
+# MAGIC * Building a single xgboost model
 # MAGIC * Building multiple xgboost models in parallel by making use of pandas_UDF
 # MAGIC * Use MLFlow Tracking UI to: 
-# MAGIC   * save metrics of these concurrent runs.
+# MAGIC   * save metrics of all ML runs
 # MAGIC   * log the generated XGBoost models.
 # MAGIC * Use MLFlow Model Registry to log our best model in a specified "production path"
-# MAGIC * Use Mlflow Sagemaker functionality to deploy our model to AWS Sagemaker.
+# MAGIC * Use Mlflow Azure functionality to deploy our model to AWS Sagemaker.
 
 # COMMAND ----------
 
@@ -43,12 +44,23 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Get data and perform feature engineering
 input_data = table('bank_db.bank_marketing')
 cols = input_data.columns
 
 # COMMAND ----------
 
 display(input_data)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Feature engineering
+# MAGIC In the below command we do the following:
+# MAGIC * For each of the categorical columns (inc. the label/output column) we create a stringIndexer, which converts the string values of the categorical columns to numerical values.
+# MAGIC * We add the stringIndexers together in a pyspark.ml.Pipeline object
+# MAGIC * We "fit" the pipeline object to the training data-set
+# MAGIC * We subsequently transform the data-set using our pipeline object, and save it to Delta.
 
 # COMMAND ----------
 
@@ -87,6 +99,11 @@ display(dataset)
 # COMMAND ----------
 
 dataset.write.mode('Overwrite').format("delta").saveAsTable("bank_db.bank_marketing_train_set")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Single node XGBoost training
 
 # COMMAND ----------
 
@@ -250,7 +267,9 @@ result_set.select('n_estimators','max_depth','auc').distinct().orderBy(f.desc('a
 
 # COMMAND ----------
 
-result_set.show(100)
+# MAGIC %md
+# MAGIC #### Add model to Model Registry
+# MAGIC We can now add our model to Model Registry. Included is a notebook that we can use to retrieve a model from the MLFlow experiment, and subsequently add it to model registry.
 
 # COMMAND ----------
 

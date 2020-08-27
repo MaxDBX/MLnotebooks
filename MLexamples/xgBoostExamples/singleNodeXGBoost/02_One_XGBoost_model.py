@@ -1,6 +1,5 @@
 # Databricks notebook source
-# Make sure to run 0_preparedata first!
-input_data = table('max_db.bank_marketing')
+input_data = table('max_db_ADFS.bank_marketing')
 cols = input_data.columns
 
 # COMMAND ----------
@@ -47,9 +46,13 @@ dataset.write.mode('Overwrite').format("delta").saveAsTable("max_db_ADFS.bank_ma
 
 # COMMAND ----------
 
+dbutils.fs.ls("dbfs:/mnt/mthoneADFS/db/")
+
+# COMMAND ----------
+
 # Create mlflow experiment
 import mlflow
-ws_user = "FILL_IN" # fill in your home folder (which is your user email used to login to Azure Databricks)
+ws_user = "carsten.thone@databricks.com" # fill in your home folder (which is your user email used to login to Azure Databricks)
 mlflow.set_tracking_uri("databricks") # if databricks -> then 'MANAGED' and somewhere on the control plane
 #experiment_path = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # workspace path by default
 #mlflow_model_save_dir = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # dbfs path (i.e. path to your root bucket, or some mounted ADFS folder)

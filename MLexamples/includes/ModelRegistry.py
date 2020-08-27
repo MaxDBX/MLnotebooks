@@ -5,11 +5,9 @@
 # COMMAND ----------
 
 dbutils.widgets.text("runID","DefaultVal")
-#dbutils.widgets.text("experimentID","1695779316543778")
-#dbutils.widgets.text("modelRegistryName","mthoneBankXGB")
+dbutils.widgets.text("modelRegistryName","mthoneBankXGB")
 
 runId = dbutils.widgets.get("runID")
-#experimentId = dbutils.widgets.get("experimentID")
 modelRegistryName = dbutils.widgets.get("modelRegistryName")
 
 # COMMAND ----------
@@ -30,7 +28,7 @@ from mlflow.tracking import MlflowClient
 
 # COMMAND ----------
 
-## Create ModelRegistry (only have to do this once)
+## Create ModelRegistry (only have to do this once) TODO: Can probably delete this code
 client = MlflowClient()
 client.create_registered_model(modelRegistryName)
 
@@ -55,6 +53,10 @@ for version in version_prod_list:
     name=modelRegistryName,
     version=version,
     stage="Archived")
+
+# COMMAND ----------
+
+model_list = client.search_model_versions("name='%s'" % modelRegistryName)
 
 # COMMAND ----------
 

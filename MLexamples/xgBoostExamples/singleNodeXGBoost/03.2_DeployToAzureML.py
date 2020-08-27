@@ -21,26 +21,28 @@ modelURI = getProdModelURI(modelRegistryName)
 
 # COMMAND ----------
 
+dbutils.secrets.get("fieldeng","mthone_sp_pw")
+
+# COMMAND ----------
+
 import os
 
 from azureml.core import Workspace
 from azureml.core.authentication import ServicePrincipalAuthentication
 
 
-## (Put it in Azure keyvault!)
-svc_pr_password = "######"
-
+## FILL IN YOUR OWN ACCESS TOKENS BELOW (BEST PRACTICE: MAKE USE OF DBUTILS SECRETS)
 svc_pr = ServicePrincipalAuthentication(
-    tenant_id="######",
-    service_principal_id="######",
-    service_principal_password=svc_pr_password)
+    tenant_id=dbutils.secrets.get("fieldeng","mthone_tenant_id"),
+    service_principal_id=dbutils.secrets.get("fieldeng","mthone_sp_id"),
+    service_principal_password=dbutils.secrets.get("fieldeng","mthone_sp_pw"))
 
 # Use interactive login (base option)
 # Otherwise use service principal
 ws = Workspace(
-    subscription_id="#######", # Azure subscription ID
-    resource_group="######", # Name of resource group in which Azure ML workspace is deployed
-    workspace_name="#####",  # Name of Azure ML workspace 
+    subscription_id=dbutils.secrets.get("fieldeng","mthone_subscription_id"), # Azure subscription ID
+    resource_group="mthone-fe", # Name of resource group in which Azure ML workspace is deployed
+    workspace_name="mthoneML",  # Name of Azure ML workspace 
     auth=svc_pr
     )
 print("Found workspace {} at location {}".format(ws.name, ws.location))
@@ -74,9 +76,9 @@ from azureml.core.compute import AksCompute, ComputeTarget
 # Get the resource id from https://porta..azure.com -> Find your resource group -> click on the Kubernetes service -> Properties
 #resource_id = "/subscriptions/<your subscription id>/resourcegroups/<your resource group>/providers/Microsoft.ContainerService/managedClusters/<your aks service name>"
 # Attach the cluster to your workgroup
-attach_config = AksCompute.attach_configuration(resource_group = "####", # name of resource group in which AKS service is deployed
-                                         cluster_name = "####")  # name of AKS service
-aks_target = ComputeTarget.attach(ws, '####', attach_config) # To be defined name of the compute target in Azure ML workspace (can be defined here)
+attach_config = AksCompute.attach_configuration(resource_group = "mthone-fe", # name of resource group in which AKS service is deployed
+                                         cluster_name = "mthoneAKS")  # name of AKS service
+aks_target = ComputeTarget.attach(ws, 'mthone-ml-aks', attach_config) # To be defined name of the compute target in Azure ML workspace (can be defined here)
 
 # Wait for the operation to complete
 aks_target.wait_for_completion(True)
@@ -131,7 +133,7 @@ df = spark.sql("select * from max_db.bank_marketing_train_set")
 
 # COMMAND ----------
 
-train_x = df.limit(1).toPandas()
+train_x = df.toPandas()
 sample = train_x.iloc[:,:]
 sample_json = sample.to_json(orient="split")
 
