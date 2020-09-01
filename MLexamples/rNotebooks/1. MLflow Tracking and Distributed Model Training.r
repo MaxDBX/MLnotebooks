@@ -419,14 +419,6 @@ display(predictions)
 
 # COMMAND ----------
 
-display(test_data)
-
-# COMMAND ----------
-
-test_data
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ___
 # MAGIC At this point you should have a solid understanding of how to track your experimentation with MLflow, access the Model Registry, and consider the art of the possible with distributed training with Spark. 
