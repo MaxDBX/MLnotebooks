@@ -1,52 +1,6 @@
 # Databricks notebook source
-input_data = table('max_db_ADFS.bank_marketing')
+input_data = table('bank_db.bank_marketing_train_set')
 cols = input_data.columns
-
-# COMMAND ----------
-
-display(input_data)
-
-# COMMAND ----------
-
-from pyspark.ml import Pipeline
-from pyspark.ml.feature import OneHotEncoder, StringIndexer, StringIndexerModel, VectorAssembler
-
-categoricalColumns = ["job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome"]
-stages = [] # stages in our Pipeline
-for categoricalCol in categoricalColumns:
-  # Category Indexing with StringIndexer
-  stringIndexer = StringIndexer(inputCol=categoricalCol, outputCol=categoricalCol + "Index")
-  stages += [stringIndexer]
-  
-labelIndexer = StringIndexer(inputCol="y", outputCol="label")
-stages += [labelIndexer]
-
-# COMMAND ----------
-
-numericCols = ["age", "balance", "duration", "campaign", "previous", "day"]
-feature_cols = [x + 'Index' for x in categoricalColumns] + numericCols
-
-# COMMAND ----------
-
-pipeline = Pipeline(stages=stages)
-# Run the feature transformations.
-#  - fit() computes feature statistics as needed.
-#  - transform() actually transforms the features.
-pipelineModel = pipeline.fit(input_data)
-dataset = pipelineModel.transform(input_data)
-
-# Keep relevant columns
-selectedcols = ["label"] + feature_cols
-dataset = dataset.select(selectedcols)
-display(dataset)
-
-# COMMAND ----------
-
-dataset.write.mode('Overwrite').format("delta").saveAsTable("max_db_ADFS.bank_marketing_train_set")
-
-# COMMAND ----------
-
-dbutils.fs.ls("dbfs:/mnt/mthoneADFS/db/")
 
 # COMMAND ----------
 
@@ -57,7 +11,7 @@ mlflow.set_tracking_uri("databricks") # if databricks -> then 'MANAGED' and some
 #experiment_path = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # workspace path by default
 #mlflow_model_save_dir = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # dbfs path (i.e. path to your root bucket, or some mounted ADFS folder)
 
-experiment_path = "/projectOne/singleNodeMLFlow".format(ws_user)
+experiment_path = "/Users/{}/singleNodeMLFlow".format(ws_user)
 #mlflow_model_save_dir = "/mnt/mthoneADFS/singleNodeXGBoost"
 mlflow_model_save_dir = "/Users/{}/mlflowExperiments/bank_sparkML_2".format(ws_user)
 
@@ -129,7 +83,11 @@ def train_xgboost(data):
 
 # COMMAND ----------
 
-pdDF = dataset.toPandas()
+pdDF = input_data.toPandas()
+
+# COMMAND ----------
+
+pdDF
 
 # COMMAND ----------
 
@@ -139,3 +97,6 @@ returnDF = train_xgboost(pdDF)
 
 import mlflow.xgboost
 model = mlflow.xgboost.load_model("runs:/e8c9b22245ab4164a15e912c96b2465d/model")
+
+# COMMAND ----------
+

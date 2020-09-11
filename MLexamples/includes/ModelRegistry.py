@@ -5,7 +5,7 @@
 # COMMAND ----------
 
 dbutils.widgets.text("runID","DefaultVal")
-dbutils.widgets.text("modelRegistryName","mthoneBankXGB")
+dbutils.widgets.text("modelRegistryName","mthoneSingleNodeXGB")
 
 runId = dbutils.widgets.get("runID")
 modelRegistryName = dbutils.widgets.get("modelRegistryName")
@@ -71,3 +71,6 @@ client.transition_model_version_stage(
     version=NewVersion,
     stage="production"
 )
+
+# COMMAND ----------
+

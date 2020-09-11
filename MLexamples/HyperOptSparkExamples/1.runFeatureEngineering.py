@@ -7,10 +7,6 @@ input_data = table('bank_marketing')
 
 # COMMAND ----------
 
-display(input_data)
-
-# COMMAND ----------
-
 import pyspark.sql.functions as f
 
 from pyspark.ml import Pipeline
@@ -60,6 +56,3 @@ transformedTestData = pipelineModel.transform(testData).withColumn("label",f.col
 
 transformedTrainData.createOrReplaceGlobalTempView("globalTempTrainData")
 transformedTestData.createOrReplaceGlobalTempView("globalTempTestData")
-
-# COMMAND ----------
-

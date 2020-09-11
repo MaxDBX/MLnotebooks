@@ -134,12 +134,20 @@ df = spark.sql("select * from max_db.bank_marketing_train_set")
 # COMMAND ----------
 
 train_x = df.toPandas()
-sample = train_x.iloc[:,:]
+sample = train_x.iloc[1,:]
 sample_json = sample.to_json(orient="split")
 
 # COMMAND ----------
 
 sample_json
+
+# COMMAND ----------
+
+sample_json_2 = sample.to_json(orient="records")
+
+# COMMAND ----------
+
+sample_json_2
 
 # COMMAND ----------
 

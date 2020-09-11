@@ -22,7 +22,7 @@
 # MAGIC   * (if you want to run the model in this notebook: install ranger and carrier as well)
 # MAGIC   
 # MAGIC ##### MLFlow configuration:
-# MAGIC To get MLFlow to work with R, we must point the environment variables `MLFLOW_PYTHON_BIN` and `MLFLOW_BIN` to the python executable and python MLFlow executable respectively. This is done in cmd 5.
+# MAGIC To get MLFlow to work with R, we must point the environment variables `MLFLOW_PYTHON_BIN` and `MLFLOW_BIN` to the python executable and python MLFlow executable respectively. This is done in cmd 4.
 
 # COMMAND ----------
 

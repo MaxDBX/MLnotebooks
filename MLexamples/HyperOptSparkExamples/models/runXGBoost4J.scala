@@ -11,26 +11,47 @@ val n_estimators: Int = dbutils.widgets.get("n_estimators").toInt
 
 // COMMAND ----------
 
-import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier
+val n_threads: Int = spark.conf.get("spark.task.cpus").toInt
+val n_workers: Int = sc.defaultParallelism / n_threads
 
+// COMMAND ----------
+
+import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier
 val xgbClassifier = (new XGBoostClassifier().
                      setFeaturesCol("features").
                      setLabelCol("label").
                      setObjective("binary:logistic").
                      setMaxDepth(max_depth).
                      setNumRound(n_estimators).
-                     setNumWorkers(sc.defaultParallelism).
-                     setNthread(1).
-                     setMissing(0.0f))
+                     setNumWorkers(n_workers).
+                     setNthread(n_threads).
+                     setMissing(1))
 
 // COMMAND ----------
 
-val trainData = spark.sql("select * from global_temp.globalTempTrainData").repartition(sc.defaultParallelism) //  
-val testData = spark.sql("select * from global_temp.globalTempTestData").repartition(sc.defaultParallelism)   // set it equal to number of cores as a start
+val trainData = spark.sql("select * from global_temp.globalTempTrainData").repartition(n_workers) //  
+val testData = spark.sql("select * from global_temp.globalTempTestData").repartition(n_workers)   // set it equal to number of cores as a start
 
 // COMMAND ----------
 
-val xgbClassificationModel = xgbClassifier.fit(trainData)
+import org.apache.spark.sql.functions.{col, udf}
+val toDense = udf((v: org.apache.spark.ml.linalg.Vector) => v.toDense)
+
+val denseTrainData = trainData.withColumn("features", toDense(col("features")))
+val denseTestData = testData.withColumn("features",toDense(col("features")))
+
+// COMMAND ----------
+
+val denseTrainData = trainData.withColumn("features", toDense(col("features")))
+val denseTestData = testData.withColumn("features",toDense(col("features")))
+
+// COMMAND ----------
+
+display(denseTrainData)
+
+// COMMAND ----------
+
+val xgbClassificationModel = xgbClassifier.fit(denseTrainData)
 
 // COMMAND ----------
 
@@ -42,7 +63,7 @@ val evaluator = (new MulticlassClassificationEvaluator()
 
 // COMMAND ----------
 
-val loss = 1 - evaluator.evaluate(xgbClassificationModel.transform(testData))
+val loss = 1 - evaluator.evaluate(xgbClassificationModel.transform(denseTestData))
 
 // COMMAND ----------
 

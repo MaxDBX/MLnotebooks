@@ -85,6 +85,3 @@ import mlflow
 import mlflow.spark
 
 mlflow.spark.load_model("runs:/ff72286706ce4059bb9885587d28fce9/model")
-
-# COMMAND ----------
-
