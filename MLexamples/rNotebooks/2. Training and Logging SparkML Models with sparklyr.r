@@ -346,7 +346,7 @@ results <- fit_cv_model(pipeline,sample_train, grid, num_folds = 3, parallelism 
 
 # COMMAND ----------
 
-run_info <- evaluate_pipeline(results$crate_best_model, test_data, results$params,mlflow_run_name = "cv_model", experiment_id = experiment_id)
+run_info <- log_pipeline(results$crate_best_model, test_data, results$params,mlflow_run_name = "cv_model", experiment_id = experiment_id)
 
 # COMMAND ----------
 
