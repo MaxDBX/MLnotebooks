@@ -4,7 +4,7 @@
 # MAGIC 
 # MAGIC <img src="https://databricks.com/wp-content/uploads/2019/10/model-registry-new.png" height = 1200 width = 800>
 # MAGIC _____
-# MAGIC **Note**: Make sure to run 00_PrepareData to make the dataset that is used in this notebook available
+# MAGIC **Note**: Make sure to run /includes/PrepareData to make the dataset that is used in this notebook available
 # MAGIC 
 # MAGIC 
 # MAGIC **Contents**
@@ -40,6 +40,11 @@ library(ranger)
 library(caret)
 library(carrier)
 library(mlflow)
+
+# COMMAND ----------
+
+# DBTITLE 1,Retrieve dataset
+# MAGIC %run ./includes/prepareBankData
 
 # COMMAND ----------
 
