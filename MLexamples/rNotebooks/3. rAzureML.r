@@ -11,6 +11,18 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC #### Prerequisites
+# MAGIC Make sure you have the following Azure resources set up, preferably within the same resource group
+# MAGIC * AzureML workspace
+# MAGIC * Azure Kubernetes Service (AKS)
+# MAGIC 
+# MAGIC Also make sure you have access to an Azure Service Principal/app registration, and make sure you have give it "owner" access to the Azure Resource Group in which the AzureML/AKS resources are deployed.
+# MAGIC 
+# MAGIC Secondly, make sure you have a ML model available for deployment. You can run one of the 2 ML R notebooks in this folder to get a ML model.
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC #### 0. Libraries and set-up
 # MAGIC We will need the following libraries:
 # MAGIC * azure ml sdk for R. This should be installed directly from github using `remotes::install_github()`, as the version on CRAN seems to not be the latest version.

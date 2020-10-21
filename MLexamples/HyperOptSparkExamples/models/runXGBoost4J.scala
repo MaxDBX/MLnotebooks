@@ -11,8 +11,19 @@ val n_estimators: Int = dbutils.widgets.get("n_estimators").toInt
 
 // COMMAND ----------
 
-val n_threads: Int = spark.conf.get("spark.task.cpus").toInt
-val n_workers: Int = sc.defaultParallelism / n_threads
+// number of threads per xgb_worker. Should be set equal spark.tas.cpus. spark.task.cpus can be configured in cluster settings, but it's a cluster wide parameter.
+// By default spark.task.cpus does not exist. Set it to 1 then.
+
+// increasing n_threads can help a bit with memory management.
+import java.util.NoSuchElementException
+val n_threads = try {
+  spark.conf.get("spark.task.cpus").toInt
+} catch {
+  case e: java.util.NoSuchElementException => 1
+}
+
+// number of "xgboost workers" to use. Pick this so that n_threads x xgb_workers = total # of cores (= sc.default parallelism)
+val xgb_workers: Int = sc.defaultParallelism / n_threads   
 
 // COMMAND ----------
 
@@ -23,35 +34,36 @@ val xgbClassifier = (new XGBoostClassifier().
                      setObjective("binary:logistic").
                      setMaxDepth(max_depth).
                      setNumRound(n_estimators).
-                     setNumWorkers(n_workers).
-                     setNthread(n_threads).
-                     setMissing(1))
+                     setNumWorkers(xgb_workers).
+                     setNthread(n_threads))
 
 // COMMAND ----------
 
-val trainData = spark.sql("select * from global_temp.globalTempTrainData").repartition(n_workers) //  
-val testData = spark.sql("select * from global_temp.globalTempTestData").repartition(n_workers)   // set it equal to number of cores as a start
+//  data partitions should be equal to xgb_workers
+val trainData = spark.sql("select * from global_temp.globalTempTrainData").repartition(xgb_workers)
+val testData = spark.sql("select * from global_temp.globalTempTestData").repartition(xgb_workers) 
 
 // COMMAND ----------
 
+// MAGIC %md
+// MAGIC #### Sparse vectors vs Dense Vectors
+// MAGIC * When you make use of 0 values as missing values, you can pass the training/test data as sparse vectors to XGBoost4J.
+// MAGIC * When you make use of a different value for missing, you need to convert your data to dense vectors using the command below.
+// MAGIC * It is preferable to make use of sparse vectors for memory usage.
+
+// COMMAND ----------
+
+/*
 import org.apache.spark.sql.functions.{col, udf}
 val toDense = udf((v: org.apache.spark.ml.linalg.Vector) => v.toDense)
 
 val denseTrainData = trainData.withColumn("features", toDense(col("features")))
 val denseTestData = testData.withColumn("features",toDense(col("features")))
+*/
 
 // COMMAND ----------
 
-val denseTrainData = trainData.withColumn("features", toDense(col("features")))
-val denseTestData = testData.withColumn("features",toDense(col("features")))
-
-// COMMAND ----------
-
-display(denseTrainData)
-
-// COMMAND ----------
-
-val xgbClassificationModel = xgbClassifier.fit(denseTrainData)
+val xgbClassificationModel = xgbClassifier.fit(trainData)
 
 // COMMAND ----------
 
@@ -63,12 +75,7 @@ val evaluator = (new MulticlassClassificationEvaluator()
 
 // COMMAND ----------
 
-val loss = 1 - evaluator.evaluate(xgbClassificationModel.transform(denseTestData))
-
-// COMMAND ----------
-
-// MAGIC %sh
-// MAGIC ls /dbfs/tmp/carsten.thone@databricks.com/
+val loss = 1 - evaluator.evaluate(xgbClassificationModel.transform(testData))
 
 // COMMAND ----------
 

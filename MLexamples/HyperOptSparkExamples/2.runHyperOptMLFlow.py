@@ -47,23 +47,16 @@ def trainNotebook(params):
   numEstimators= str(params["numEstimators"])
   maxDepth = str(params["maxDepth"])
   
-  # can add parameter here, for example: tweedieVariancePAower = params["tweedie_variance_power"]
-  # Make sure to add it to the widget of the notebook you want to run, and to the arguments in dbutils.notebook.run
-  
-  print(numEstimators)
-  print(maxDepth)
-  
   with mlflow.start_run(experiment_id = experiment_id) as run:
     run_id = run.info.run_id
     mlflow.log_param("numEstimators", numEstimators)
     mlflow.log_param("maxDepth", maxDepth)
     mlflow.log_param("modelType","XGB")
-    str_loss = dbutils.notebook.run("models/runXGBoost4J", timeout_seconds = 600, arguments = {"max_depth": maxDepth, 
-                                                                                              "n_estimators": numEstimators, 
-                                                                                              "experiment_id": experiment_id,
-                                                                                              "run_id": run_id
-                                                                                             })
-    print(str_loss)
+    str_loss = dbutils.notebook.run("models/runXGBoost4J", timeout_seconds = 600, 
+                                    arguments = {"max_depth": maxDepth, 
+                                                 "n_estimators": numEstimators, 
+                                                 "experiment_id": experiment_id,
+                                                 "run_id": run_id})
     mlflow.log_metric("loss", float(str_loss))
   return {"loss": float(str_loss), "status": STATUS_OK}
 
