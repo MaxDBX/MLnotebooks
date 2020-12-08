@@ -8,11 +8,8 @@ cols = input_data.columns
 import mlflow
 ws_user = "carsten.thone@databricks.com" # fill in your home folder (which is your user email used to login to Azure Databricks)
 mlflow.set_tracking_uri("databricks") # if databricks -> then 'MANAGED' and somewhere on the control plane
-#experiment_path = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # workspace path by default
-#mlflow_model_save_dir = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # dbfs path (i.e. path to your root bucket, or some mounted ADFS folder)
 
 experiment_path = "/Users/{}/singleNodeMLFlow".format(ws_user)
-#mlflow_model_save_dir = "/mnt/mthoneADFS/singleNodeXGBoost"
 mlflow_model_save_dir = "/Users/{}/mlflowExperiments/bank_sparkML_2".format(ws_user)
 
 # COMMAND ----------
@@ -87,16 +84,18 @@ pdDF = input_data.toPandas()
 
 # COMMAND ----------
 
-pdDF
-
-# COMMAND ----------
-
 returnDF = train_xgboost(pdDF)
 
 # COMMAND ----------
 
-import mlflow.xgboost
-model = mlflow.xgboost.load_model("runs:/e8c9b22245ab4164a15e912c96b2465d/model")
+from mlflow.tracking import MlflowClient
+client = MlflowClient()
 
 # COMMAND ----------
 
+best_run_id = client.search_runs(experiment_ids = [experiment_id], order_by=["metrics.auc DESC"])[0].info.run_id
+
+# COMMAND ----------
+
+import mlflow.xgboost
+model = mlflow.xgboost.load_model(f"runs:/{best_run_id}/model")

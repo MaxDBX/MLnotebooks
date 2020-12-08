@@ -28,16 +28,6 @@ from mlflow.tracking import MlflowClient
 
 # COMMAND ----------
 
-client = MlflowClient()
-# Register the model with the run URI and unique name
-#model_uri = "runs:/{}/model".format(runId)
-#model_registry_id = spark.conf.get("com.databricks.tmp.uniqueid") # ensures we have a uniqueID for each student
-#model_registry_name = "bank_singlenode_{}".format(model_registry_id) 
-
-#model_details = mlflow.register_model(model_uri=model_uri, name=model_registry_name)
-
-# COMMAND ----------
-
 ## Create ModelRegistry (only have to do this once) TODO: Can probably delete this code
 client = MlflowClient()
 client.create_registered_model(modelRegistryName)

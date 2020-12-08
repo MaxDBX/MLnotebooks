@@ -64,6 +64,3 @@ client.transition_model_version_stage(
     version=versionID,
     stage="production"
 )
-
-# COMMAND ----------
-

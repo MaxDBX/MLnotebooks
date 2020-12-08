@@ -40,7 +40,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Run set up
-# MAGIC %run ../includes/mlSetup
+# MAGIC %run /Projects/carsten.thone@databricks.com/MLnotebooks/MLexamples/includes/mlSetup
 
 # COMMAND ----------
 
@@ -103,11 +103,6 @@ dataset.write.mode('Overwrite').format("delta").saveAsTable("bank_db.bank_market
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### Single node XGBoost training
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC ### Create hyperparameter grid
 # MAGIC In the cells below:
 # MAGIC * We create a spark dataframe that contains a row for each combination of hyperparameters we'd like to evaluate.
@@ -152,7 +147,7 @@ mlflow.set_tracking_uri("databricks") # if databricks -> then 'MANAGED' and some
 #experiment_path = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # workspace path by default
 #mlflow_model_save_dir = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # dbfs path (i.e. path to your root bucket, or some mounted ADFS folder)
 
-experiment_path = "/Users/{}/bankXGBoost".format(username)
+experiment_path = "/Users/{}/bankXGBoost2".format(username)
 artifact_path = "{}/bank_xgboost".format(userhome)
 
 # COMMAND ----------
@@ -255,7 +250,7 @@ def train_xgboost(data):
 
 # COMMAND ----------
 
-spark.conf.set("spark.sql.shuffle.partitions",sc.defaultParallelism)
+spark.conf.set("spark.sql.shuffle.partitions",sc.defaultParallelism * 2)
 
 # COMMAND ----------
 

@@ -1,9 +1,4 @@
 # Databricks notebook source
-input_data = table('bank_db.bank_marketing')
-cols = input_data.columns
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC #### Feature engineering
 # MAGIC In the below command we do the following:
@@ -11,6 +6,11 @@ cols = input_data.columns
 # MAGIC * We add the stringIndexers together in a pyspark.ml.Pipeline object
 # MAGIC * We "fit" the pipeline object to the training data-set
 # MAGIC * We subsequently transform the data-set using our pipeline object, and save it to Delta.
+
+# COMMAND ----------
+
+input_data = table('bank_db.bank_marketing')
+cols = input_data.columns
 
 # COMMAND ----------
 
@@ -53,3 +53,6 @@ display(dataset)
 # COMMAND ----------
 
 dataset.write.mode('Overwrite').format("delta").saveAsTable("bank_db.bank_marketing_train_set")
+
+# COMMAND ----------
+

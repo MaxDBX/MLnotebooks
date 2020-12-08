@@ -33,14 +33,17 @@ from azureml.core.authentication import ServicePrincipalAuthentication
 
 ## FILL IN YOUR OWN ACCESS TOKENS BELOW (BEST PRACTICE: MAKE USE OF DBUTILS SECRETS)
 svc_pr = ServicePrincipalAuthentication(
-    tenant_id=dbutils.secrets.get("fieldeng","mthone_tenant_id"),
-    service_principal_id=dbutils.secrets.get("fieldeng","mthone_sp_id"),
-    service_principal_password=dbutils.secrets.get("fieldeng","mthone_sp_pw"))
+    tenant_id=dbutils.secrets.get("common-sp","az-tenant-id"),
+    service_principal_id=dbutils.secrets.get("common-sp","common-sa-sp-client-id"),
+    service_principal_password=dbutils.secrets.get("common-sp","common-sa-sp-client-secret"))
 
 # Use interactive login (base option)
 # Otherwise use service principal
+
+# COMMAND ----------
+
 ws = Workspace(
-    subscription_id=dbutils.secrets.get("fieldeng","mthone_subscription_id"), # Azure subscription ID
+    subscription_id=dbutils.secrets.get("common-sp","az-sub-id"), # Azure subscription ID
     resource_group="mthone-fe", # Name of resource group in which Azure ML workspace is deployed
     workspace_name="mthoneML",  # Name of Azure ML workspace 
     auth=svc_pr
