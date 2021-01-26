@@ -10,6 +10,11 @@
 
 # COMMAND ----------
 
+# TEST TEST
+1 + 1 + 1
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ### Introduction
 # MAGIC In this set of three notebooks we will demonstrate the following:
