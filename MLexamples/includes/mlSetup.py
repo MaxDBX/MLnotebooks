@@ -21,3 +21,14 @@ spark.conf.set("com.databricks.tmp.uniqueid", str(uniqueId))
 username = spark.conf.get("com.databricks.tmp.username")
 userhome = spark.conf.get("com.databricks.tmp.userhome")
 uniqueid = spark.conf.get("com.databricks.tmp.uniqueid")
+
+# COMMAND ----------
+
+def setOrCeateMLFlowExperiment(experimentPath):
+  from mlflow.exceptions import MlflowException
+  try:
+    experiment_id = mlflow.create_experiment(experimentPath)
+  except MlflowException: # if experiment is already created
+    experiment_id = mlflow.get_experiment_by_name(experimentPath).experiment_id
+    mlflow.set_experiment(experimentPath)
+  return experiment_id

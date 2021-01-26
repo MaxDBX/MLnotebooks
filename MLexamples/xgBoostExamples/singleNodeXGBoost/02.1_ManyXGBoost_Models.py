@@ -45,60 +45,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Get data and perform feature engineering
-input_data = table('bank_db.bank_marketing')
-cols = input_data.columns
-
-# COMMAND ----------
-
-display(input_data)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC #### Feature engineering
-# MAGIC In the below command we do the following:
-# MAGIC * For each of the categorical columns (inc. the label/output column) we create a stringIndexer, which converts the string values of the categorical columns to numerical values.
-# MAGIC * We add the stringIndexers together in a pyspark.ml.Pipeline object
-# MAGIC * We "fit" the pipeline object to the training data-set
-# MAGIC * We subsequently transform the data-set using our pipeline object, and save it to Delta.
-
-# COMMAND ----------
-
-from pyspark.ml import Pipeline
-from pyspark.ml.feature import OneHotEncoder, StringIndexer, StringIndexerModel, VectorAssembler
-
-categoricalColumns = ["job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome"]
-stages = [] # stages in our Pipeline
-for categoricalCol in categoricalColumns:
-  # Category Indexing with StringIndexer
-  stringIndexer = StringIndexer(inputCol=categoricalCol, outputCol=categoricalCol + "Index")
-  stages += [stringIndexer]
-  
-labelIndexer = StringIndexer(inputCol="y", outputCol="label")
-stages += [labelIndexer]
-
-# COMMAND ----------
-
-numericCols = ["age", "balance", "duration", "campaign", "previous", "day"]
-feature_cols = [x + 'Index' for x in categoricalColumns] + numericCols
-
-# COMMAND ----------
-
-pipeline = Pipeline(stages=stages)
-# Run the feature transformations.
-#  - fit() computes feature statistics as needed.
-#  - transform() actually transforms the features.
-pipelineModel = pipeline.fit(input_data)
-dataset = pipelineModel.transform(input_data)
-
-# Keep relevant columns
-selectedcols = ["label"] + feature_cols
-dataset = dataset.select(selectedcols)
-display(dataset)
-
-# COMMAND ----------
-
-dataset.write.mode('Overwrite').format("delta").saveAsTable("bank_db.bank_marketing_train_set")
+dataset = table("bank_db.bank_marketing_train_set")
 
 # COMMAND ----------
 
@@ -144,26 +91,12 @@ cross_val_set = dataset.crossJoin(exploded_grid)
 
 import mlflow
 mlflow.set_tracking_uri("databricks") # if databricks -> then 'MANAGED' and somewhere on the control plane
-#experiment_path = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # workspace path by default
-#mlflow_model_save_dir = "/Users/{}/mlflowExperiments/bank_xgboost".format(ws_user) # dbfs path (i.e. path to your root bucket, or some mounted ADFS folder)
-
-experiment_path = "/Users/{}/bankXGBoost2".format(username)
-artifact_path = "{}/bank_xgboost".format(userhome)
+ws_user = "carsten.thone@databricks.com"
+experiment_path = "/Users/{}/manyXGBoostModels".format(ws_user)
 
 # COMMAND ----------
 
-def setOrCeateMLFlowExperiment(experimentPath,mlflow_model_save_dir):
-  from mlflow.exceptions import MlflowException
-  try:
-    experiment_id = mlflow.create_experiment(experimentPath, mlflow_model_save_dir)
-  except MlflowException: # if experiment is already created
-    experiment_id = mlflow.get_experiment_by_name(experimentPath).experiment_id
-    mlflow.set_experiment(experimentPath)
-  return experiment_id
-
-# COMMAND ----------
-
-experiment_id = setOrCeateMLFlowExperiment(experiment_path,artifact_path)
+experiment_id = setOrCeateMLFlowExperiment(experiment_path)
 
 # COMMAND ----------
 
@@ -178,26 +111,22 @@ experiment_id = setOrCeateMLFlowExperiment(experiment_path,artifact_path)
 # COMMAND ----------
 
 ## Create pandas udf
-from pyspark.sql.functions import pandas_udf, PandasUDFType
-from pyspark.sql.types import DoubleType, StructType, StructField
+from pyspark.sql.types import DoubleType, StructType, StructField, StringType
 
-# ML Flow in pandas udf
+# MLFlow in pandas udf
 cntx = dbutils.entry_point.getDbutils().notebook().getContext()
 api_token = cntx.apiToken().get()
 api_url = cntx.apiUrl().get()
 
 schema = StructType([
-  StructField('Predictions', DoubleType(), True),
-  StructField('probability_0',DoubleType(),True),
-  StructField('probability_1',DoubleType(),True),
+  StructField('run_id', StringType(), True),
   StructField('n_estimators',DoubleType(),True),
   StructField('max_depth',DoubleType(),True),
   StructField('auc', DoubleType(), True)])
 
-@pandas_udf(schema, PandasUDFType.GROUPED_MAP)
 def train_xgboost(data):
   print("STARTING EXECUTION")
-  
+  # Import libraries
   import os
   import pandas as pd
   from sklearn.metrics import roc_auc_score
@@ -206,13 +135,18 @@ def train_xgboost(data):
   import mlflow
   import mlflow.xgboost
   
+  # Set internal token and url to communicate with tracking server
   os.environ["DATABRICKS_TOKEN"] = api_token
   os.environ["DATABRICKS_HOST"] = api_url
   
+  # retrieve hyper parameters and drop them from the dataframe
   n_estimators = data['n_estimators'].iloc[0]
   max_depth = data['max_depth'].iloc[0]
+  
   print("building model for %d estimators and %d depth" %(n_estimators, max_depth))
   data = data.drop(["n_estimators", "max_depth"], axis=1)
+  
+  # Split into train and test data, and features and target variable
   train, test = train_test_split(data)
   
   train_x = train.drop(["label"], axis=1)
@@ -242,11 +176,11 @@ def train_xgboost(data):
     mlflow.log_metric("auc",auc)
     mlflow.xgboost.log_model(xgb_model,"model")
     
-  predicted_qualities['n_estimators'] = n_estimators
-  predicted_qualities['max_depth'] = max_depth
-  predicted_qualities['auc'] = auc
-  
-  return predicted_qualities
+    output_df = pd.DataFrame(data = {"run_id": [run.info.run_uuid], 
+                                     "n_estimators": n_estimators,
+                                     "max_depth": max_depth,
+                                     "auc": [auc]})
+  return output_df
 
 # COMMAND ----------
 
@@ -254,11 +188,25 @@ spark.conf.set("spark.sql.shuffle.partitions",sc.defaultParallelism * 2)
 
 # COMMAND ----------
 
-result_set = cross_val_set.groupby("n_estimators",'max_depth').apply(train_xgboost).cache()
+result_set = cross_val_set.groupby("n_estimators","max_depth").applyInPandas(train_xgboost, schema = schema)
 
 # COMMAND ----------
 
-result_set.select('n_estimators','max_depth','auc').distinct().orderBy(f.desc('auc')).count()
+display(result_set)
+
+# COMMAND ----------
+
+# We can also use the mlflow client to retrieve our best run_id
+from mlflow.tracking import MlflowClient
+client = MlflowClient()
+
+# COMMAND ----------
+
+best_run_id = client.search_runs(experiment_ids = [experiment_id], order_by=["metrics.auc DESC"])[0].info.run_id
+
+# COMMAND ----------
+
+best_run_id
 
 # COMMAND ----------
 

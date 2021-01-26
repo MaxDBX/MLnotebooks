@@ -10,14 +10,13 @@ ws_user = "carsten.thone@databricks.com" # fill in your home folder (which is yo
 mlflow.set_tracking_uri("databricks") # if databricks -> then 'MANAGED' and somewhere on the control plane
 
 experiment_path = "/Users/{}/singleNodeMLFlow".format(ws_user)
-mlflow_model_save_dir = "/Users/{}/mlflowExperiments/bank_sparkML_2".format(ws_user)
 
 # COMMAND ----------
 
-def setOrCeateMLFlowExperiment(experimentPath,mlflow_model_save_dir):
+def setOrCeateMLFlowExperiment(experimentPath):
   from mlflow.exceptions import MlflowException
   try:
-    experiment_id = mlflow.create_experiment(experimentPath, "dbfs:" + mlflow_model_save_dir)
+    experiment_id = mlflow.create_experiment(experimentPath)
   except MlflowException: # if experiment is already created
     experiment_id = mlflow.get_experiment_by_name(experimentPath).experiment_id
     mlflow.set_experiment(experimentPath)
@@ -25,7 +24,7 @@ def setOrCeateMLFlowExperiment(experimentPath,mlflow_model_save_dir):
 
 # COMMAND ----------
 
-experiment_id = setOrCeateMLFlowExperiment(experiment_path,mlflow_model_save_dir)
+experiment_id = setOrCeateMLFlowExperiment(experiment_path)
 
 # COMMAND ----------
 
@@ -99,3 +98,6 @@ best_run_id = client.search_runs(experiment_ids = [experiment_id], order_by=["me
 
 import mlflow.xgboost
 model = mlflow.xgboost.load_model(f"runs:/{best_run_id}/model")
+
+# COMMAND ----------
+
