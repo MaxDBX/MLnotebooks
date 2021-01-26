@@ -10,11 +10,6 @@
 
 # COMMAND ----------
 
-# TEST TEST
-1 + 1 + 1
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ### Introduction
 # MAGIC In this set of three notebooks we will demonstrate the following:
@@ -165,13 +160,9 @@ def train_xgboost(data):
                             n_estimators = n_estimators)
   
   print("Fitting model for %d estimators and %d depth" % (n_estimators, max_depth))
-  xgb_model = xgbCL.fit(train_x,train_y)
-  
-  predicted_qualities = pd.DataFrame(xgb_model.predict(test_x), columns=["Predictions"])
-  predicted_qualities['probability_0'] = xgb_model.predict_proba(test_x)[:,0]
-  predicted_qualities['probability_1'] = xgb_model.predict_proba(test_x)[:,1]
-  
-  auc = roc_auc_score(test_y, predicted_qualities['Predictions'])
+  xgb_model = xgbCL.fit(train_x,train_y)  
+  predictions = pd.DataFrame(xgb_model.predict(test_x), columns=["Predictions"])
+  auc = roc_auc_score(test_y, predictions['Predictions'])
   
   print("Starting MLFLow run for %d estimators and %d depth" %(n_estimators, max_depth))
   with mlflow.start_run(experiment_id = experiment_id) as run:
