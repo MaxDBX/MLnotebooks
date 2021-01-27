@@ -3,6 +3,19 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### Experiment tracking example
+# MAGIC Below is an example in which we track the training of a simple XGBoost model. We do the following:
+# MAGIC * We create a MLflow experiment using `mlflow.create_experiment`, which creates an experiment object for us in the workspace that we can interact with.
+# MAGIC * We train a XGBoost model, and log the hyperparameters, metrics and the model object itself to the experiment.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ###### 
+
+# COMMAND ----------
+
 # Create mlflow experiment
 import mlflow
 mlflow.set_tracking_uri("databricks")
@@ -70,12 +83,12 @@ returnDF = train_xgboost(pdDF)
 
 # COMMAND ----------
 
-from mlflow.tracking import MlflowClient
-client = MlflowClient()
-
-best_run_id = client.search_runs(experiment_ids = [experiment_id], order_by=["metrics.auc DESC"])[0].info.run_id
+# MAGIC %md
+# MAGIC ##### Extra: Use the MLflow client to analyse the runs programmatically
+# MAGIC Next to using the Experiments UI, or just putting all the results from a run into spark DF, the `MLflowClient` class can be used to look up runs programmatially from a given (list of) experiment(s). Below is an example of how we can retrieve the run_id with the highest area under the curve score by using the `client.search_runs` method.
 
 # COMMAND ----------
 
-import mlflow.xgboost
-model = mlflow.xgboost.load_model(f"runs:/{best_run_id}/model")
+from mlflow.tracking import MlflowClient
+client = MlflowClient()
+best_run_id = client.search_runs(experiment_ids = [experiment_id], order_by=["metrics.auc DESC"])[0].info.run_id
