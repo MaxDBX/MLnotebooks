@@ -45,6 +45,8 @@
 dbutils.widgets.text("runID","DefaultVal")
 dbutils.widgets.text("modelRegistryName","mthoneSingleNodeXGB")
 
+# COMMAND ----------
+
 runId = dbutils.widgets.get("runID")
 modelRegistryName = dbutils.widgets.get("modelRegistryName")
 
@@ -79,6 +81,7 @@ client.create_registered_model(modelRegistryName)
 
 # COMMAND ----------
 
+"runs:/<run_id>/model"
 mlflow.register_model("runs:/" + runId + "/model", modelRegistryName)
 
 # COMMAND ----------

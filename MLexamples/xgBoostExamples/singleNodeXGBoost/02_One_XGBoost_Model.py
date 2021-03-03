@@ -11,18 +11,22 @@
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ###### 
-
-# COMMAND ----------
-
 # Create mlflow experiment
 import mlflow
 mlflow.set_tracking_uri("databricks")
-experiment_path = "/Users/{}/singleNodeMLFlow".format(username)
+experiment_path = "/Users/{}/1.singleNodeMLFlow".format(username)
 
 # uses mlflow.create_experiment(experimentPath)
 experiment_id = setOrCeateMLFlowExperiment(experiment_path)
+
+# COMMAND ----------
+
+input_data = table('bank_db.bank_marketing_train_set')
+pdDF = input_data.toPandas()
+
+# COMMAND ----------
+
+pdDF
 
 # COMMAND ----------
 
@@ -92,3 +96,11 @@ returnDF = train_xgboost(pdDF)
 from mlflow.tracking import MlflowClient
 client = MlflowClient()
 best_run_id = client.search_runs(experiment_ids = [experiment_id], order_by=["metrics.auc DESC"])[0].info.run_id
+
+# COMMAND ----------
+
+best_run_id
+
+# COMMAND ----------
+
+

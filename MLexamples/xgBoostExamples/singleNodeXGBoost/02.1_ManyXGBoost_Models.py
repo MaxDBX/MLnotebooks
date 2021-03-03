@@ -34,17 +34,20 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Read in the data and do feature engineering
-# MAGIC We use our delta table from notebook 0 as the starting point for feature engineering. That is: We read in the delta table, and subsequently apply a couple of transformations so that we end up with features that can be used for training our XGBoost models. For this we make use of Pyspark ML pipeline methods
+# MAGIC ### Run set up
 
 # COMMAND ----------
 
-# DBTITLE 1,Run set up
+# DBTITLE 0,Run set up
 # MAGIC %run /Projects/carsten.thone@databricks.com/MLnotebooks/MLexamples/includes/mlSetup
 
 # COMMAND ----------
 
-# DBTITLE 1,Get data and perform feature engineering
+# MAGIC %md
+# MAGIC ### Get the data
+
+# COMMAND ----------
+
 dataset = table("bank_db.bank_marketing_train_set")
 
 # COMMAND ----------
@@ -72,6 +75,10 @@ exploded_grid = (
 
 # COMMAND ----------
 
+display(exploded_grid)
+
+# COMMAND ----------
+
 cross_val_set = dataset.crossJoin(exploded_grid)
 
 # COMMAND ----------
@@ -92,7 +99,7 @@ cross_val_set = dataset.crossJoin(exploded_grid)
 import mlflow
 mlflow.set_tracking_uri("databricks") # if databricks -> then 'MANAGED' and somewhere on the control plane
 ws_user = "carsten.thone@databricks.com"
-experiment_path = "/Users/{}/manyXGBoostModels".format(ws_user)
+experiment_path = "/Users/{}/2.manyXGBoostModels".format(ws_user)
 
 # COMMAND ----------
 
@@ -215,3 +222,7 @@ best_run_id
 # MAGIC %md
 # MAGIC #### Appendix: alternative to grid-search
 # MAGIC In this notebook we did a simple grid-search to find a model with the best hyperparameters. However, Databricks also supports more advanced methods, such as Hyperopt. See [this link](https://docs.microsoft.com/en-us/azure/databricks/applications/machine-learning/automl/hyperopt/) for more information.
+
+# COMMAND ----------
+
+

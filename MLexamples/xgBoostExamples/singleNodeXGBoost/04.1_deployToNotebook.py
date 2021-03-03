@@ -21,6 +21,7 @@ import mlflow
 model_name = modelRegistryName
 stage = "Production"
 
+
 loaded_model = mlflow.pyfunc.spark_udf(spark, model_uri=f"models:/{model_name}/{stage}")
 
 # COMMAND ----------
