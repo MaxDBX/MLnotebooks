@@ -54,5 +54,9 @@ transformedTestData = pipelineModel.transform(testData).withColumn("label",f.col
 
 # COMMAND ----------
 
+display(transformedTrainData)
+
+# COMMAND ----------
+
 transformedTrainData.createOrReplaceGlobalTempView("globalTempTrainData")
 transformedTestData.createOrReplaceGlobalTempView("globalTempTestData")

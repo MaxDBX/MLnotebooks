@@ -1,6 +1,6 @@
 // Databricks notebook source
-dbutils.widgets.text("max_depth","5")
-dbutils.widgets.text("n_estimators","100")
+dbutils.widgets.text("max_depth","2")
+dbutils.widgets.text("n_estimators","20")
 dbutils.widgets.text("experiment_id","FILL_IN")
 dbutils.widgets.text("run_id","FILL_IN")
 
@@ -8,6 +8,14 @@ dbutils.widgets.text("run_id","FILL_IN")
 
 val max_depth: Int = dbutils.widgets.get("max_depth").toInt
 val n_estimators: Int = dbutils.widgets.get("n_estimators").toInt
+
+// COMMAND ----------
+
+spark.conf.set("spark.sql.shuffle.partitions",sc.defaultParallelism)
+
+// COMMAND ----------
+
+sc.defaultParallelism
 
 // COMMAND ----------
 
@@ -53,17 +61,15 @@ val testData = spark.sql("select * from global_temp.globalTempTestData").reparti
 
 // COMMAND ----------
 
-/*
 import org.apache.spark.sql.functions.{col, udf}
 val toDense = udf((v: org.apache.spark.ml.linalg.Vector) => v.toDense)
 
 val denseTrainData = trainData.withColumn("features", toDense(col("features")))
 val denseTestData = testData.withColumn("features",toDense(col("features")))
-*/
 
 // COMMAND ----------
 
-val xgbClassificationModel = xgbClassifier.fit(trainData)
+val xgbClassificationModel = xgbClassifier.fit(denseTrainData)
 
 // COMMAND ----------
 
@@ -75,7 +81,7 @@ val evaluator = (new MulticlassClassificationEvaluator()
 
 // COMMAND ----------
 
-val loss = 1 - evaluator.evaluate(xgbClassificationModel.transform(testData))
+val loss = 1 - evaluator.evaluate(xgbClassificationModel.transform(denseTestData))
 
 // COMMAND ----------
 

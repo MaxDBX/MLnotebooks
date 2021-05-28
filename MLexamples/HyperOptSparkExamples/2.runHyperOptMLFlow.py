@@ -22,16 +22,15 @@ space = {
 import mlflow
 ws_user = "carsten.thone@databricks.com" # fill in your home folder (which is your user email used to login to Azure Databricks)
 mlflow.set_tracking_uri("databricks") # if databricks -> then 'MANAGED' and somewhere on the control plane
-experiment_path = "/Users/{}/mlflowExperiments/RF".format(username) # workspace path by default
+experiment_path = "/Users/{}/xgBoost4j".format(username) # workspace path by default
 #mlflow_model_save_dir = "/Users/{}/mlflowExperiments/hyperOptExample".format(ws_user) # dbfs path (i.e. path to your root bucket, or some mounted ADFS folder)
-mlflow_model_save_dir = "{}/mlflowExperiments/RF".format(userhome)
 
 # COMMAND ----------
 
-def setOrCeateMLFlowExperiment(experimentPath,mlflow_model_save_dir):
+def setOrCeateMLFlowExperiment(experimentPath):
   from mlflow.exceptions import MlflowException
   try:
-    experiment_id = mlflow.create_experiment(experimentPath, "dbfs:" + mlflow_model_save_dir)
+    experiment_id = mlflow.create_experiment(experimentPath)
   except MlflowException: # if experiment is already created
     experiment_id = mlflow.get_experiment_by_name(experimentPath).experiment_id
     mlflow.set_experiment(experimentPath)
@@ -39,7 +38,7 @@ def setOrCeateMLFlowExperiment(experimentPath,mlflow_model_save_dir):
 
 # COMMAND ----------
 
-experiment_id = setOrCeateMLFlowExperiment(experiment_path,mlflow_model_save_dir)
+experiment_id = setOrCeateMLFlowExperiment(experiment_path)
 
 # COMMAND ----------
 
@@ -67,14 +66,11 @@ best_param = fmin(
   fn=trainNotebook,
   space=space,
   algo=algo,
-  max_evals=2,
+  max_evals=4,
   return_argmin=False,
 )
 
 # COMMAND ----------
 
-# Test RF model
 import mlflow
-import mlflow.spark
-
-mlflow.spark.load_model("runs:/ff72286706ce4059bb9885587d28fce9/model")
+loaded_model = mlflow.pyfunc.spark_udf(spark, "runs:/6d515e2f84ac4d5ea9ad62a5e6e44b1a/model")
