@@ -2,30 +2,19 @@
 # MAGIC %md
 # MAGIC #### Feature engineering
 # MAGIC In the below command we do the following:
-# MAGIC * For each of the categorical columns (inc. the label/output column) we create a stringIndexer, which converts the string values of the categorical columns to numerical values.
-# MAGIC * We add the stringIndexers together in a pyspark.ml.Pipeline object
-# MAGIC * We "fit" the pipeline object to the training data-set
-# MAGIC * We subsequently transform the data-set using our pipeline object, and save it to Delta.
+# MAGIC * For the categorical columns (inc. the label/output column) we create a stringIndexer, which converts the string values of the categorical columns to numerical values. We create a separate one for the label column
+# MAGIC * We add the two stringIndexers together in a pyspark.ml.Pipeline object
+# MAGIC * We "fit" the pipeline object to the dataset
+# MAGIC * We subsequently transform the data-set using our pipeline object, and save it to a Feature Store
+# MAGIC * **Note:** The Feature Store requires a primary key, so we artificially create an "id" column at the start.
 
 # COMMAND ----------
 
-input_data = table('bank_db.bank_marketing')
-cols = input_data.columns
+# Artificially add a primary key
+import pyspark.sql.functions as F
+from pyspark.sql import Window
 
-# COMMAND ----------
-
-from pyspark.ml import Pipeline
-from pyspark.ml.feature import OneHotEncoder, StringIndexer, StringIndexerModel, VectorAssembler
-
-categoricalColumns = ["job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome"]
-stages = [] # stages in our Pipeline
-for categoricalCol in categoricalColumns:
-  # Category Indexing with StringIndexer
-  stringIndexer = StringIndexer(inputCol=categoricalCol, outputCol=categoricalCol + "Index")
-  stages += [stringIndexer]
-  
-labelIndexer = StringIndexer(inputCol="y", outputCol="label")
-stages += [labelIndexer]
+input_data = table('bank_db.bank_marketing').withColumn("primary_key", F.row_number().over(Window.))
 
 # COMMAND ----------
 
@@ -33,26 +22,47 @@ display(input_data)
 
 # COMMAND ----------
 
-numericCols = ["age", "balance", "duration", "campaign", "previous", "day"]
-feature_cols = [x + 'Index' for x in categoricalColumns] + numericCols
+def buildFeatureData(input_data):
+  from pyspark.ml import Pipeline
+  from pyspark.ml.feature import StringIndexer
+  
+  # define names/prefixes for the output columns
+  label_col = "label"
+  catInputCols = ["job", "marital", "education", "default", "housing", "loan", "contact", "month", "poutcome"]
+  catOutputCols = [col + "_idx" for col in catInputCols]
+  
+  
+  # pipeline stages (Converting string columns to indexed columns)
+  string_indexer =  StringIndexer(inputCols = catInputCols, outputCols = catOutputCols)
+  label_indexer = StringIndexer(inputCol = "y", outputCol = "label")
+  stages = [string_indexer, label_indexer]
+  pipeline = Pipeline(stages=stages)
+  
+  # Note: ONLY feature transformations that apply to BOTH train and test set should go here
+  # Transformations that apply only to train set, and should be "fitted" to test set should be part of the model training itself
+  # (For example: imputing null values of a column with its mean)
+
+  pipelineModel = pipeline.fit(input_data)
+  output_data = pipelineModel.transform(input_data)
+  numericCols = ["age", "balance", "duration", "campaign", "previous", "day"]
+    
+  return output_data.select(numericCols + catOutputCols + [label_col])
 
 # COMMAND ----------
 
-pipeline = Pipeline(stages=stages)
-# Run the feature transformations.
-#  - fit() computes feature statistics as needed.
-#  - transform() actually transforms the features.
-pipelineModel = pipeline.fit(input_data)
-dataset = pipelineModel.transform(input_data)
-
-# Keep relevant columns
-selectedcols = ["label"] + feature_cols
-dataset = dataset.select(selectedcols)
-display(dataset)
+feature_data = buildFeatureData(input_data)
 
 # COMMAND ----------
 
-dataset.write.mode('Overwrite').format("delta").saveAsTable("bank_db.bank_marketing_train_set")
+display(feature_data)
 
 # COMMAND ----------
 
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### Note: Edge cases
+# MAGIC 
+# MAGIC * How would the feature store take care of imputation?
