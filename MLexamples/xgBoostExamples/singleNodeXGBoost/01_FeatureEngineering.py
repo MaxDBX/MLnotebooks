@@ -14,7 +14,7 @@
 import pyspark.sql.functions as F
 from pyspark.sql import Window
 
-input_data = table('bank_db.bank_marketing').withColumn("primary_key", F.row_number().over(Window.))
+input_data = table('bank_db.bank_marketing')#.withColumn("primary_key", F.row_number().over(Window.orderBy()))
 
 # COMMAND ----------
 
@@ -55,6 +55,12 @@ feature_data = buildFeatureData(input_data)
 # COMMAND ----------
 
 display(feature_data)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Feature Store
+# MAGIC Now that we have created our feature data set, we will store it into a feature store. Essentially the feature store is a delta-backed table with a number of extra features that work nicely with our features.
 
 # COMMAND ----------
 
