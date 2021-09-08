@@ -62,6 +62,7 @@ def trainNotebook(params):
 # COMMAND ----------
 
 # Run HyperOpt
+
 best_param = fmin(
   fn=trainNotebook,
   space=space,

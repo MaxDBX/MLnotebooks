@@ -58,8 +58,12 @@ schema = StructType([
 bronze_df = (spark.read.format('csv').schema(schema).option('header','true')
              .load(driver_to_dbfs_path))
 
-bronze_df.write.format('delta').mode('overwrite').saveAsTable(database_name + "." + bronze_table_name)
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### Basic data cleaning
+# MAGIC We assume the data was already cleaned. The below step is not considered part of the feature engineering step. Rather it's part of the "cleaning" process
 
 # COMMAND ----------
 
-
+bronze_df.write.format('delta').mode('overwrite').saveAsTable(database_name + "." + bronze_table_name)

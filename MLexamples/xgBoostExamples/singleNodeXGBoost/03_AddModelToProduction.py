@@ -42,8 +42,8 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("runID","DefaultVal")
-dbutils.widgets.text("modelRegistryName","mthoneSingleNodeXGB")
+#dbutils.widgets.text("runID","FILL_IN")
+#dbutils.widgets.text("modelRegistryName","FILL_IN")
 
 # COMMAND ----------
 
@@ -60,29 +60,7 @@ modelRegistryName = dbutils.widgets.get("modelRegistryName")
 
 import mlflow
 from mlflow.tracking import MlflowClient
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Create Model Registry 
-# MAGIC Only have to do this once. Note we can also do this through the UI in the Models tab.
-
-# COMMAND ----------
-
-## Create ModelRegistry (only have to do this once) TODO: Can probably delete this code
 client = MlflowClient()
-client.create_registered_model(modelRegistryName)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Register the model associated to the runID to our model Registry
-# MAGIC Note, we use `mlflow.register_model`. `register_model` is a function that's part of the `mlflow library`, and it's not a method that's part of the MLflow client.
-
-# COMMAND ----------
-
-"runs:/<run_id>/model"
-mlflow.register_model("runs:/" + runId + "/model", modelRegistryName)
 
 # COMMAND ----------
 
@@ -110,7 +88,7 @@ for version in version_prod_list:
 
 # COMMAND ----------
 
-NewVersion = client.search_model_versions("run_id='%s'" % runId)[0].version
+NewVersion = max([m.version for m in client.search_model_versions("run_id='%s'" % runId)])
 
 client.transition_model_version_stage(
     name=modelRegistryName,

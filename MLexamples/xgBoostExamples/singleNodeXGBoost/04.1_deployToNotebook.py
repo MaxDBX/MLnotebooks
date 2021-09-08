@@ -1,12 +1,16 @@
 # Databricks notebook source
-dbutils.widgets.text("modelRegistryName","mthoneSingleNodeXGB")
+import mlflow
+from mlflow.tracking import MlflowClient
+client = MlflowClient()
+
+#dbutils.widgets.text("modelRegistryName","FILL_IN")
 modelRegistryName = dbutils.widgets.get("modelRegistryName")
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ### Deploying our model to a Databricks notebook
-# MAGIC Now that we pushed a model to the production stage in our model registry, we can deploy it from there to a Databricks notebook. This notebook can then subsequently be scheduled using the jobs UI on the left.
+# MAGIC Now that we pushed a model to the production stage in our model registry, we can deploy it from there to a Databricks notebook. We can now again use the Feature Store to easily do this. Remember that the Feature Store has feature computations associated with this. This means we make sure we use the same computations for training and inference, which reduces the chance of weird inconsistencies!
 
 # COMMAND ----------
 
@@ -17,12 +21,7 @@ modelRegistryName = dbutils.widgets.get("modelRegistryName")
 # COMMAND ----------
 
 import mlflow
-
-model_name = modelRegistryName
-stage = "Production"
-
-
-loaded_model = mlflow.pyfunc.spark_udf(spark, model_uri=f"models:/{model_name}/{stage}")
+model_uri = f"models:/{modelRegistryName}/production"
 
 # COMMAND ----------
 
@@ -33,12 +32,19 @@ loaded_model = mlflow.pyfunc.spark_udf(spark, model_uri=f"models:/{model_name}/{
 # COMMAND ----------
 
 # This is just the train data we used before but we "pretend" it's new data just to show how this works.
-features = table('bank_db.bank_marketing_train_set').drop("label")
-feature_cols = features.columns
+inference_data = spark.table("max_db.inference_data").select("customerID", "LastCallEscalated")
 
-# Load model as a Spark UDF.
-predictions = features.withColumn("prediction",loaded_model(*feature_cols))
 
 # COMMAND ----------
 
-display(predictions)
+from databricks.feature_store import FeatureStoreClient
+
+fs = FeatureStoreClient()
+
+# COMMAND ----------
+
+with_predictions = fs.score_batch(f"models:/{modelRegistryName}/production", inference_data, result_type = "string")
+
+# COMMAND ----------
+
+display(with_predictions)
