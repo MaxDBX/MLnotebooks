@@ -4,7 +4,7 @@
 
 # COMMAND ----------
 
-database_name = 'max_db'
+database_name = 'telco_db'
 bronze_table_name = "bronze_telco_churn"
 
 # COMMAND ----------
@@ -67,3 +67,7 @@ bronze_df = (spark.read.format('csv').schema(schema).option('header','true')
 # COMMAND ----------
 
 bronze_df.write.format('delta').mode('overwrite').saveAsTable(database_name + "." + bronze_table_name)
+
+# COMMAND ----------
+
+

@@ -12,7 +12,7 @@
 from databricks.feature_store import FeatureStoreClient
 import pyspark.sql.functions as F
 fs = FeatureStoreClient()
-database_name = 'max_db'
+database_name = 'telco_db'
 bronze_table_name = "bronze_telco_churn"
 
 input_data = table(f"{database_name}.{bronze_table_name}")
@@ -23,7 +23,15 @@ input_data = table(f"{database_name}.{bronze_table_name}")
 # MAGIC ### Defining Feature Store Tables
 # MAGIC 
 # MAGIC The raw data set `input_data` can be improved for ML and data science by:
-# MAGIC * splitting into logical
+# MAGIC * splitting into logical, reusable subsets of columns
+# MAGIC * engineering more useful features
+# MAGIC * Publish result as feature store tables
+# MAGIC 
+# MAGIC First we define a `@feature_table` that simply selects some demographic information from the data. This will become one feature store table when written later. A `@feature_table` is really just a function that computes a DataFrame defining the features in the table, from a source ‘raw’ DataFrame. It can be called directly for testing; this by itself does not persist or publish features.
+
+# COMMAND ----------
+
+display(input_data)
 
 # COMMAND ----------
 
@@ -60,6 +68,7 @@ display(demographics_df)
 
 # MAGIC %md
 # MAGIC ##### Feature table 2: Service Features
+# MAGIC Next, feature related to the customer’s telco service are likewise selected. Note that each of these tables includes customerID as a key for joining. We do some very basic feature engineering here, e.g. converting Contract to number of months.
 
 # COMMAND ----------
 
@@ -118,14 +127,27 @@ display(inference_df)
 
 # COMMAND ----------
 
-spark.sql("DROP TABLE IF EXISTS max_db.service_features")
-spark.sql("DROP TABLE IF EXISTS max_db.demographic_features")
-spark.sql("DROP TABLE IF EXISTS max_db.inference_data")
+spark.sql(f"DROP TABLE IF EXISTS {database_name}.service_features")
+spark.sql(f"DROP TABLE IF EXISTS {database_name}.demographic_features")
+spark.sql(f"DROP TABLE IF EXISTS {database_name}.inference_data")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Writing Feature Store Tables
+# MAGIC 
+# MAGIC With the tables defined by functions above, next, the feature store tables need to be written out, first as Delta tables. These are the fundamental ‘offline’ data stores underpinning the feature store tables. We use the `FeatureStoreClient` client to create the feature tables, defining metadata like which database and table the feature store table will write to, and importantly, its key(s).
+
+# COMMAND ----------
+
+from databricks.feature_store import FeatureStoreClient
+import pyspark.sql.functions as F
+fs = FeatureStoreClient()
 
 # COMMAND ----------
 
 demographic_features_table = fs.create_feature_table(
-  name = "max_db.demographic_features",
+  name = f"{database_name}.demographic_features",
   keys = "customerID",
   schema = demographics_df.schema,
   description = "Telco customer demographics")
@@ -133,132 +155,23 @@ demographic_features_table = fs.create_feature_table(
 # COMMAND ----------
 
 service_features_table = fs.create_feature_table(
-  name = "max_db.service_features",
+  name = f"{database_name}.service_features",
   keys = "customerID",
   schema = service_df.schema,
   description = "Telco service features")
 
 # COMMAND ----------
 
-compute_demographic_features.compute_and_write(input_data, feature_table_name = "max_db.demographic_features", mode = "merge")
+compute_demographic_features.compute_and_write(input_data, feature_table_name = f"{database_name}.demographic_features", mode = "merge")
 
 # COMMAND ----------
 
-compute_service_features.compute_and_write(input_data, feature_table_name = "max_db.service_features", mode = "merge")
+compute_service_features.compute_and_write(input_data, feature_table_name = f"{database_name}.service_features", mode = "merge")
 
 # COMMAND ----------
 
-inference_df.write.format("delta").saveAsTable("max_db.inference_data")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Adding more features
-# MAGIC Consider the situation where we already trained a few models, and we find that we should add a bunch of features to our tables. How would we do this?
-
-# COMMAND ----------
-
-def buildFeatureData(input_data):
-  from pyspark.ml import Pipeline
-  from pyspark.ml.feature import StringIndexer
-  
-  # define names/prefixes for the output columns
-  label_col = "label"
-  id_col = "customerID"
-  
-  catInputCols = ["gender","seniorCitizen","partner","dependents", "phoneService","multipleLines",
-                  "internetService","onlineSecurity","onlineBackup","deviceProtection","techSupport",
-                  "streamingTV","streamingMovies","contract","paperlessBilling","paymentMethod"]
-  catOutputCols = [col + "_idx" for col in catInputCols]
-  
-  print(catInputCols)
-  print(catOutputCols)
-  
-  
-  # pipeline stages (Converting string columns to indexed columns)
-  string_indexer =  StringIndexer(inputCols = catInputCols, outputCols = catOutputCols)
-  label_indexer = StringIndexer(inputCol = "churnString", outputCol = "label")
-  stages = [string_indexer, label_indexer]
-  pipeline = Pipeline(stages=stages)
-  
-  # Note: ONLY feature transformations that apply to BOTH train and test set should go here
-  # Transformations that apply only to train set, and should be "fitted" to test set should be part of the model training itself
-  # (For example: imputing null values of a column with its mean)
-
-  pipelineModel = pipeline.fit(input_data)
-  output_data = pipelineModel.transform(input_data)
-  numericCols = ["tenure","monthlyCharges","totalCharges"]
-    
-  return output_data.select([id_col] + numericCols + catOutputCols + [label_col])
-
-# COMMAND ----------
-
-feature_data = buildFeatureData(input_data)
-
-# COMMAND ----------
-
-display(feature_data)
-
-# COMMAND ----------
-
-feature_schema = feature_data.schema
-
-# COMMAND ----------
-
-feature_schema
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Feature Store
-# MAGIC Now that we have created our feature data set, we will store it into a feature store. Essentially the feature store is a delta-backed table with a number of extra features that work nicely with our features.
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Create Feature Table (only have to do this once)
-
-# COMMAND ----------
-
-from databricks.feature_store import feature_table, FeatureStoreClient
-fs = FeatureStoreClient()
-
-# COMMAND ----------
-
-telco_churn_feature_table = fs.create_feature_table(
-  name = "max_db.churn_features",
-  keys = "customerID",
-  schema = feature_data.schema,
-  description = "Telco Churn Features"
-)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Write to Feature Table
-# MAGIC Essentially we now have an empty Delta Table. We are now going to write our feature engineering data (`feature_data`) to this table. It works pretty much the same as a normal Delta Table
-
-# COMMAND ----------
-
-fs.write_table(
-  name = "max_db.churn_features",
-  df = feature_data,
-  mode = "merge"
-)
+inference_df.write.format("delta").saveAsTable(f"{database_name}.inference_data")
 
 # COMMAND ----------
 
 
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Why use a Feature Store table instead of a normal Delta Table? What is the addtional benefit?
-# MAGIC * Easy out of the box addition of data, based on primary keys (e.g. customer IDs in this case.)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Note: Edge cases
-# MAGIC 
-# MAGIC * How would the feature store take care of imputation?

@@ -42,8 +42,8 @@
 
 # COMMAND ----------
 
-#dbutils.widgets.text("runID","FILL_IN")
-#dbutils.widgets.text("modelRegistryName","FILL_IN")
+dbutils.widgets.text("runID","FILL_IN")
+dbutils.widgets.text("modelRegistryName","FILL_IN")
 
 # COMMAND ----------
 
@@ -85,6 +85,8 @@ for version in version_prod_list:
 # MAGIC %md
 # MAGIC ##### Push our new model to the production stage in our model registry
 # MAGIC Now that we have archived the old model, we can now push the new model to the production stage. First we get the model version id that is associated with the run ID. We then use this version ID to transition the model to production.
+# MAGIC 
+# MAGIC **note**: We could also derive the version by just doing `client.search_model_versions("name='%s' % modelRegistryName")`
 
 # COMMAND ----------
 
@@ -101,3 +103,7 @@ client.transition_model_version_stage(
 # MAGIC %md
 # MAGIC ##### Deploy the model to a databricks notebook
 # MAGIC Now that the model is in the production stage, we can directly deploy it from there into a Databricks notebook, which is shown in the next notebook.
+
+# COMMAND ----------
+
+
