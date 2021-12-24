@@ -22,7 +22,7 @@ import mlflow
 from mlflow.tracking import MlflowClient
 
 mlflow_client = MlflowClient()
-fs = FeatureStoreClient()
+fs_client = FeatureStoreClient()
 database_name = "telco_db"
 
 # COMMAND ----------
@@ -45,8 +45,9 @@ mlflow.set_experiment(experiment.name)
 
 # COMMAND ----------
 
+# generate all look ups
 def generate_all_lookups(table):
-  return [FeatureLookup(table.name, f, "customerID") for f in fs.read_table(table.name).columns if f != "customerID"]
+    return [FeatureLookup(table_name = table.name, lookup_key = "customerID", feature_names = f) for f in fs_client.read_table(table.name).columns if f != "customerID"]
 
 
 def build_training_data(inference_data, feature_tables):
@@ -54,11 +55,16 @@ def build_training_data(inference_data, feature_tables):
   feature_lookups = []
   
   for ft in feature_tables:
-    feature_table = fs.get_feature_table(ft)
+    feature_table = fs_client.get_feature_table(ft)
     feature_lookup = generate_all_lookups(feature_table)
     feature_lookups += feature_lookup
     
-  return fs.create_training_set(inference_data, feature_lookups, label = "Churn", exclude_columns = "customerID")
+  return fs_client.create_training_set(inference_data, feature_lookups, label = "Churn", exclude_columns = "customerID")
+
+# COMMAND ----------
+
+# This is the set of customer IDs for which we want to train the data, including our "inference time" features
+inference_data = spark.table(f"{database_name}.inference_data")
 
 # COMMAND ----------
 
@@ -68,10 +74,6 @@ inference_data = spark.table(f"{database_name}.inference_data")
 ## Training Data will be needed for fs.log_model
 training_data = build_training_data(inference_data, [f"{database_name}.service_features",f"{database_name}.demographic_features"])
 training_df = training_data.load_df().toPandas()
-
-# COMMAND ----------
-
-spark_df = training_data.load_df()
 
 # COMMAND ----------
 
@@ -215,14 +217,6 @@ client = MlflowClient()
 
 # COMMAND ----------
 
-runs = client.search_runs(experiment_ids = [experiment_id])
-
-# COMMAND ----------
-
-run_0
-
-# COMMAND ----------
-
 best_run_id = mlflow_client.search_runs(experiment_ids = [experiment_id], order_by=["metrics.F1 DESC"])[0].info.run_id
 
 # COMMAND ----------
@@ -250,7 +244,7 @@ mlflow.end_run()
 
 # We want to log the model to the run ID associated with producing this model in hyper opt.
 with mlflow.start_run(run_id = best_run_id, experiment_id = experiment_id) as run:
-  fs.log_model(
+  fs_client.log_model(
     best_model,
     "best_hyperopt_model",
     flavor = mlflow.sklearn,

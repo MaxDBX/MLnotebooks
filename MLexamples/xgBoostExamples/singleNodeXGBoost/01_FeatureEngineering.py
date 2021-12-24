@@ -171,7 +171,3 @@ compute_service_features.compute_and_write(input_data, feature_table_name = f"{d
 # COMMAND ----------
 
 inference_df.write.format("delta").saveAsTable(f"{database_name}.inference_data")
-
-# COMMAND ----------
-
-
